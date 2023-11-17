@@ -1,0 +1,5 @@
+src/sparticles/.DS_Store
+**__pycache__**
+**.DS_Store**
+**.vscode**
+tests

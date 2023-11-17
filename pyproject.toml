@@ -1,0 +1,28 @@
+[build-system]
+requires = [
+  "setuptools>=61.0",
+  "plotly>=5.18.0",
+  "kaleido>=0.2.1",
+  "torch>=1.11.0",
+  "torch_geometric>=2.0.1",
+  ]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sparticles"
+version = "0.0.1"
+authors = [
+  { name="Alessio Devoto", email="devoto.alessio@gmail.com"},
+]
+description = "A package to manipulate particle collisions"
+readme = "README.md"
+requires-python = ">=3.7"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/alessiodevoto/sparticles"
+"Bug Tracker" = "https://github.com/alessiodevoto/sparticles/issues"
