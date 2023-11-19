@@ -3,3 +3,5 @@ src/sparticles/.DS_Store
 **.DS_Store**
 **.vscode**
 tests
+/dist**
+/src/sparticles.egg-info/**

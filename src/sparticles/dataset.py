@@ -3,7 +3,7 @@ from torch_geometric.data import InMemoryDataset, download_url
 import pandas as pd
 from torch_geometric.data import Data
 from tqdm import tqdm
-from utils import make_tuple
+from .utils import make_tuple
 import os
 import shutil
 import tarfile

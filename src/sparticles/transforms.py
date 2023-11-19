@@ -51,5 +51,5 @@ class MakeHomogeneous(BaseTransform):
 
         # concat and replace nan nodes with zeros
         new_nodes = torch.cat((data.x.unsqueeze(2), nan_nodes.unsqueeze(2)), dim=2).reshape(data.x.shape[0], -1).nan_to_num_(self.nan_to_num)
-        data.x = new_nodes
+        data.x = new_nodes.float()
         return data
