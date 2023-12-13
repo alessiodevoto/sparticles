@@ -58,7 +58,7 @@ plot_event_2d(graphs[100])
 
 ```python
 a_list_of_graphs = [graphs[i] for i in range(0, 300, 30)]
-plot_event_2d(a_list_of_graphs, show_energy=False, height=1500)
+plot_event_2d(a_list_of_graphs, height=1500)
 ```
 
 <img src="images/multiple.png" >
