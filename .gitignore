@@ -5,3 +5,4 @@ src/sparticles/.DS_Store
 tests
 /dist**
 /src/sparticles.egg-info/**
+notes.txt
