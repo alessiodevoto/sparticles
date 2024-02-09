@@ -62,3 +62,7 @@ plot_event_2d(a_list_of_graphs, height=1500)
 ```
 
 <img src="images/multiple.png" >
+
+
+#### Changelog
+- *version 0.0.4.3*. Now the plotting function allows you to pass a show_edges and edges_weights parameters to display edges. Useful for visualizing attention maps.
