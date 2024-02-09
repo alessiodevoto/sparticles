@@ -1,5 +1,5 @@
 import plotly.graph_objs as go
-from typing import Tuple, Union, Optional
+from typing import List, Tuple, Union, Optional
 import os
 import plotly.express as px
 import math
@@ -34,6 +34,8 @@ MULTIPLOT_NUM_COLS = 3
 def _plot_event_2d(g, 
                    size_is_pt :bool = True, 
                    show_energy: bool = True, 
+                   show_edges: bool = False,
+                   edges_weights: Optional[List] = None,
                    save_to: Union[os.PathLike, str, bytes] = None, 
                    **kwargs):
     """
@@ -43,6 +45,9 @@ def _plot_event_2d(g,
         g (torch_geometric.data.Data): The particle event to plot.
         size_is_pt (bool, optional): Whether to use the particle's Pt as the marker size. Defaults to True.
         show_energy (bool, optional): Whether to include the energy particle in the plot. Defaults to True.
+        show_edges (bool, optional): Whether to draw edges between the particles. Defaults to False.
+        edges_weight (Optional[List], optional): A matrix (numpy, torch, python) representing the edge weights. More specifically, 
+                    matrix[i][j] should be the weight of the edge (i,j). Defaults to None.
         save_to (Union[os.PathLike, str, bytes], optional): Path to save the plot to. If None, the plot is displayed. Defaults to None.
         **kwargs: Additional arguments to pass to the plotly figure.
 
@@ -89,7 +94,26 @@ def _plot_event_2d(g,
     fig.update_traces(
         marker_line_color='black')
         #marker_line_width=2)
-            
+    
+    # add edges
+    # TODO this can be made more efficient but it was the easiest way to do it now
+    if show_edges:
+        # connect each particle to all the others with a line
+        for i in range(df.shape[0]):
+            for j in range(i+1, df.shape[0]):
+                edge_weight = edges_weights[i][j] if edges_weights is not None else None
+                fig.add_trace(
+                    go.Scatter(
+                        x=[df.iloc[i,2], df.iloc[j,2]], 
+                        y=[df.iloc[i,1], df.iloc[j,1]], 
+                        mode='lines', 
+                        line=dict(color='black', width=edge_weight or 1), 
+                        showlegend=False,
+                        hovertext=str(edge_weight) if edge_weight else 'none',
+                        text=str(edge_weight) if edge_weight else 'none',
+                        hoverinfo='text',
+                        ))
+                
     fig.update_layout(
         title=f"Event id {g.event_id} <br><sup>(Energy displayed at origin, but it does not have coordinates)</sup>", 
         showlegend=True,
@@ -119,15 +143,17 @@ def _plot_event_2d(g,
     return fig
 
 
-def plot_event_2d(g, size_is_pt :bool = True, show_energy: bool = True, save_to: Union[os.PathLike, str, bytes] = None, **kwargs):
+def plot_event_2d(g, size_is_pt :bool = True, show_energy: bool = True, show_edges:bool=False, edges_weights: Optional[List] = None, save_to: Union[os.PathLike, str, bytes] = None, **kwargs):
     """
     Plots a 2D event display for a given graph or list of graphs.
 
     Args:
-        g (Graph or List[Graph]): The graph or list of graphs to plot.
+        g ( torch_geometric.data.Data or List[torch_geometric.data.Data]): The graph or list of graphs to plot.
         display_particle_name (bool, optional): Whether to display the particle name on the plot. Defaults to False.
         size_is_pt (bool, optional): Whether the size of the particle markers is proportional to the particle transverse momentum. Defaults to True.
         show_energy (bool, optional): Whether to display the particle energy. Defaults to True.
+        show_edges (bool, optional): Whether to display the edges between the particles. Defaults to False.
+        edges_weights (Optional[List], optional): A matrix or list of matrices (numpy, torch, python) representing the edge weights. More specifically, matrix[i][j] should be the weight of the edge (i,j). Defaults to None.
         save_to (Union[os.PathLike, str, bytes], optional): The file path to save the plot to. Defaults to None.
         **kwargs: Additional keyword arguments to pass to the plotly `update_layout` function.
 
@@ -136,13 +162,17 @@ def plot_event_2d(g, size_is_pt :bool = True, show_energy: bool = True, save_to:
     """
     
     if isinstance(g, list):
+        
+        if isinstance(edges_weights, list) and len(edges_weights) != len(g):
+            raise ValueError("If g is a list, edges_weights must be a list with the same length")
+        
         plot_cols = MULTIPLOT_NUM_COLS if MULTIPLOT_NUM_COLS < len(g) else len(g)
         fig = make_subplots(rows=math.ceil(len(g)/plot_cols), cols=plot_cols, subplot_titles=[f"Event {g[i].event_id}" for i in range(len(g))])
         
         for graph_id, graph in enumerate(g):
-            graph_plot = _plot_event_2d(graph, size_is_pt, show_energy, save_to=None, **kwargs)
+            graph_plot = _plot_event_2d(graph, size_is_pt, show_energy, show_edges=show_edges, edges_weights=edges_weights[graph_id] if edges_weights else None, save_to=None, **kwargs)
             for d in graph_plot['data']:
-                d['showlegend'] = True if graph_id == 0 else False
+                d['showlegend'] = True if graph_id == 0 and d['mode'] != 'lines' else False
                 fig.add_trace(d, row=math.ceil((graph_id+1)/plot_cols), col=(graph_id % plot_cols) + 1)
                 
 
@@ -159,7 +189,7 @@ def plot_event_2d(g, size_is_pt :bool = True, show_energy: bool = True, save_to:
 
         return fig
     else:
-        return _plot_event_2d(g, size_is_pt, show_energy, save_to, **kwargs)
+        return _plot_event_2d(g, size_is_pt, show_energy, show_edges, edges_weights, save_to, **kwargs)
 
 
 # WARNING this is not used so not tested
