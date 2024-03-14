@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "sparticles"
-version = "0.0.4.3"
+version = "0.0.4.4"
 authors = [
   { name="Alessio Devoto", email="devoto.alessio@gmail.com"},
 ]
