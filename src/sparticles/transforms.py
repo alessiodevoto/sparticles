@@ -1,5 +1,6 @@
 from torch_geometric.transforms import BaseTransform
 import torch
+import warnings
 
 class ParticlesTransform(BaseTransform):
 
@@ -52,4 +53,36 @@ class MakeHomogeneous(BaseTransform):
         # concat and replace nan nodes with zeros
         new_nodes = torch.cat((data.x.unsqueeze(2), nan_nodes.unsqueeze(2)), dim=2).reshape(data.x.shape[0], -1).nan_to_num_(self.nan_to_num)
         data.x = new_nodes.float()
+        return data
+
+
+class RevertMakeHomogeneous(BaseTransform):
+    """
+    Transform that reverts the MakeHomogeneous transform by removing the feature that indicates if the node was NaN or not.
+
+    """
+
+    def __init__(self):
+        super(RevertMakeHomogeneous, self).__init__()
+        warnings.warn("Warning: RevertMakeHomogeneous does not revert the NaNs. It only removes the feature that indicates if the node was NaN or not.")
+
+        
+
+    def __call__(self, data):
+        """
+        Forward pass of the transform.
+
+        Args:
+            data (torch_geometric.data.Data): The input data.
+
+        Returns:
+            torch_geometric.data.Data: The transformed data.
+        """
+        # even columns mask
+        mask = torch.tensor([i for i in range(0, data.x.shape[1], 2)])
+        mask = torch.tensor([0,2,4,6,8,10])
+
+        # Use boolean indexing to select only even columns
+        data.x = data.x[:, mask]
+
         return data

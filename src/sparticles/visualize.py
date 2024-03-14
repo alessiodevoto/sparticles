@@ -56,7 +56,7 @@ def _plot_event_2d(g,
     """
     
     if g.x.shape[1] != 6:
-        raise ValueError(f"Expected g.x to have 6 columns, got {g.shape[1]} instead. Maybe you applied a transform that added columns to the data?")
+        raise ValueError(f"Expected g.x to have 6 columns, got {g.x.shape[1]} instead. Maybe you applied a transform that added columns to the data?")
 
     particles = PARTICLE_TYPES.copy()
     if g.x.shape[0] == 6:
@@ -102,6 +102,7 @@ def _plot_event_2d(g,
         for i in range(df.shape[0]):
             for j in range(i+1, df.shape[0]):
                 edge_weight = edges_weights[i][j] if edges_weights is not None else None
+                edge_weight = float(edge_weight)
                 fig.add_trace(
                     go.Scatter(
                         x=[df.iloc[i,2], df.iloc[j,2]], 
@@ -170,7 +171,7 @@ def plot_event_2d(g, size_is_pt :bool = True, show_energy: bool = True, show_edg
         fig = make_subplots(rows=math.ceil(len(g)/plot_cols), cols=plot_cols, subplot_titles=[f"Event {g[i].event_id}" for i in range(len(g))])
         
         for graph_id, graph in enumerate(g):
-            graph_plot = _plot_event_2d(graph, size_is_pt, show_energy, show_edges=show_edges, edges_weights=edges_weights[graph_id] if edges_weights else None, save_to=None, **kwargs)
+            graph_plot = _plot_event_2d(graph, size_is_pt, show_energy, show_edges=show_edges, edges_weights=edges_weights[graph_id] if edges_weights is not None else None, save_to=None, **kwargs)
             for d in graph_plot['data']:
                 d['showlegend'] = True if graph_id == 0 and d['mode'] != 'lines' else False
                 fig.add_trace(d, row=math.ceil((graph_id+1)/plot_cols), col=(graph_id % plot_cols) + 1)
@@ -191,6 +192,32 @@ def plot_event_2d(g, size_is_pt :bool = True, show_energy: bool = True, show_edg
     else:
         return _plot_event_2d(g, size_is_pt, show_energy, show_edges, edges_weights, save_to, **kwargs)
 
+
+def display_attention_matrix(graph, attention_scores, save_to: Union[os.PathLike, str, bytes] = None, **kwargs):
+    """
+    Displays the attention scores of a graph.
+
+    Args:
+        graph (torch_geometric.data.Data): The graph to display the attention scores of.
+        attention_scores (torch.Tensor): The attention scores to display.
+        save_to (Union[os.PathLike, str, bytes], optional): The path to save the image to. If None, the image is displayed instead of saved. Defaults to None.
+        **kwargs: Additional keyword arguments to pass to the plotly `update_layout` function.
+
+    Returns:
+        fig (plotly.graph_objs.Figure): The plotly figure object.
+    """
+    fig = go.Figure(data=go.Heatmap(z=attention_scores, x=graph.event_id, y=graph.event_id))
+    fig.update_layout(title="Attention matrix", xaxis_title="Event id", yaxis_title="Event id", **kwargs)
+    
+    if save_to is not None:
+        is_html = save_to.endswith('.html')
+        if is_html:
+            fig.write_html(save_to)
+        else:
+            fig.write_image(save_to)
+    else: 
+        fig.show()
+    return fig
 
 # WARNING this is not used so not tested
 def plot_event_3d(g, xyz: Tuple = (1, 2, 0), aspectmode:str = 'cube', save_to: Union[os.PathLike, str, bytes] = None,  **kwargs):
