@@ -100,7 +100,7 @@ def _plot_event_2d(g,
     if show_edges:
         # connect each particle to all the others with a line
         for i in range(df.shape[0]):
-            for j in range(i+1, df.shape[0]):
+            for j in range(df.shape[0]):
                 edge_weight = edges_weights[i][j] if edges_weights is not None else None
                 edge_weight = float(edge_weight)
                 fig.add_trace(
