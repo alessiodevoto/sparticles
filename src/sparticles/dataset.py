@@ -28,6 +28,8 @@ EVENT_LABELS = {
 }
 
 # Number of events to keep for each event type.
+# The total number of events in the dataset is the sum of the values in this dictionary.
+# We can use these values to have a more balanced dataset.
 DEFAULT_EVENT_SUBSETS = {
     'signal': 463056,
     'singletop': 242614,
@@ -35,6 +37,7 @@ DEFAULT_EVENT_SUBSETS = {
 }
 
 # These are the columns we should keep from the raw pandas dataframe.
+# The nan columns are just a hack as we need to have the same number of columns for each row.
 USEFUL_COLS = [
     # jet 1
     'pTj1', 'etaj1', 'phij1', 'j1_quantile', 'nan', 'nan',
@@ -68,6 +71,26 @@ EVENT_TABLE = """
     """
 
 class EventsDataset(InMemoryDataset):
+        """
+    Dataset of graphs representing collisions of particles. 
+    There are three types of event:
+        - signal, label 1
+        - singletop, label 0
+        - ttbar, label 0
+    
+    Each event is a graph with 6 or 7 nodes and 6 attributes. Graphs are fully connected.
+
+    Args:
+        root (str): Root directory where the dataset should be saved.
+        url (str): URL to download the dataset from.
+        event_subsets (dict, optional): Dictionary containing the number of events to keep for each event type. Defaults to {'signal': 463056, 'singletop': 242614, 'ttbar': 6093298}.
+        add_edge_index (bool, optional): Whether to add the fully connected edge index to the data objects. Defaults to True.
+        delete_raw_archive (bool, optional): Whether to delete the raw archive after extracting it. Defaults to False.
+        transform (callable, optional): A function/transform that takes in a `torch_geometric.data.Data` object and returns a transformed version. The data object will be transformed before every access. Defaults to None.
+        pre_transform (callable, optional): A function/transform that takes in a `torch_geometric.data.Data` object and returns a transformed version. The data object will be transformed before being saved to disk. Defaults to None.
+        pre_filter (callable, optional): A function that takes in a `torch_geometric.data.Data` object and returns a boolean value, indicating whether the data object should be included in the final dataset. Defaults to None.
+        download_type: If it is set to 1, it extracts all the h5 files in signal folder, if it is set to 2, it extracts the h5 file with all mixed signals. 
+    """
     def __init__(
             self,
             root,
@@ -78,7 +101,7 @@ class EventsDataset(InMemoryDataset):
             transform=None,
             pre_transform=None,
             pre_filter=None,
-            download_type: int = 1):  # Added parameter `download_type`
+            download_type: int = 2):  
 
         self.url = url
         self.delete_raw_archive = delete_raw_archive
@@ -96,13 +119,21 @@ class EventsDataset(InMemoryDataset):
 
     @property
     def processed_file_names(self):
+        # Notice the processed file names depend on the number of events we keep for each event type.
         return [f'events_{self.subset_string}.pt']
 
     @property
     def event_structure(self):
+        """
+        Returns the event structure of the dataset.
+        The event structure is a table that describes the different types of events that can occur in the dataset.
+        Returns:
+            str: A string containing a markdown table representing the event structure of the dataset.
+        """
         return EVENT_TABLE
 
     def download(self):
+        # Download raw directories to `self.raw_dir`.
         print(f'Downloading {self.url} to {self.raw_dir}...')
         print('This may take a while...')
         raw_archive = download_url(self.url, self.raw_dir, filename='events.tar', log=False)
@@ -110,17 +141,20 @@ class EventsDataset(InMemoryDataset):
         print('Extracting files...')
         with tarfile.open(raw_archive) as tar:
             if self.download_type == 1:
+                #extract all files in the folder 
                 tar.extractall(self.raw_dir)
             elif self.download_type == 2:
                 members = tar.getmembers()
                 for member in members:
+                    #extract the file which contains all signals mixed. 
                     if 'signal' in member.name and 'Wh_hbb_fullMix.h5' not in member.name:
                         continue
                     tar.extract(member, self.raw_dir)
 
         if self.delete_raw_archive:
             os.remove(raw_archive)
-
+            
+        # In case the compressed file contains a single directory, we move the files to the raw_dir.
         print('Moving files...')
         for dir in self.raw_file_names:
             dirpath = glob.glob(f'{self.raw_dir}/**/{dir}', recursive=True)[0]
@@ -128,6 +162,7 @@ class EventsDataset(InMemoryDataset):
             print(f'Moved {dirpath} to {self.raw_dir}')
 
         print('Cleaning up...')
+        # Remove the directories which are not in self.raw_file_names.
         for f in os.listdir(self.raw_dir):
             if f not in self.raw_file_names + ['events.tar']:
                 try:
@@ -151,6 +186,9 @@ class EventsDataset(InMemoryDataset):
         """
 
     def process(self):
+        # Create a dictionary of h5 files, where keys are the event types and values are the path to the h5 file.
+        # We don't know the .h5 file names, so we use glob to find them.
+        
         h5_files = {}
 
         for d in self.raw_file_names:
@@ -165,23 +203,34 @@ class EventsDataset(InMemoryDataset):
         data_list = []
 
         for event_type, h5_file in h5_files.items():
+            # Labels is the same for all events in the same directory.
             label = EVENT_LABELS[event_type]
+            # Read data into pandas dataframe and filter out useless columns.
             graphs = pd.read_hdf(h5_file)
             graphs.drop(columns=list(set(graphs.columns) - set(USEFUL_COLS)), inplace=True)
+            # Hackish way to have all rows with the same number of columns.
             graphs['nan'] = torch.nan
+            # Rearrange columns to have the same order as USEFUL_COLS and create index column.
             graphs = graphs[USEFUL_COLS].reset_index()
+            # Shuffle the dataframe and possibly keep only part of it.
             graphs = graphs.sample(n=self.event_subsets[event_type], random_state=RANDOM_STATE)
 
             for row in tqdm(graphs.values, total=graphs.shape[0], desc=f'Processing events in {h5_file}'):
                 event_id = int(row[0])
                 graph_features = row[1:]
+                # create tensor of node features
                 x = torch.from_numpy(graph_features).reshape(7, -1)
+                # some graphs have trash nodes with -99 values for the Pt column. We remove the nodes.
                 x = x[x[:, 0] > 0]
 
+                # graphs are all fully connected
                 edge_index = None
                 if self.add_edge_index:
                     directed_edge_index = torch.combinations(torch.arange(x.shape[0]), 2)
                     edge_index = torch.cat([directed_edge_index, directed_edge_index.flip(1)], dim=0).T
+                    
+                # TODO should we add the edge index here? Knowing it is fully connected, does it make sense to waste space for this ?
+                # TODO make the event id a constant across multiple datasets
 
                 data_list.append(Data(
                     x=x,
