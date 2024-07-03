@@ -71,7 +71,7 @@ EVENT_TABLE = """
     """
 
 class EventsDataset(InMemoryDataset):
-        """
+    """
     Dataset of graphs representing collisions of particles. 
     There are three types of event:
         - signal, label 1
