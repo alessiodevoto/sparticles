@@ -8,7 +8,7 @@ from .utils import make_tuple
 import shutil
 import tarfile
 import glob
-from sparticles.transforms import MakeHomogeneous
+from .transforms import MakeHomogeneous
 
 # Random state for shuffling the dataset.
 RANDOM_STATE = 42
