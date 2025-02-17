@@ -62,6 +62,16 @@ plot_event_2d(a_list_of_graphs, height=1500)
 
 <img src="images/multiple.png" >
 
+### Citations
+```
+@article{genovese2025mixtureofexpertsgraphtransformersinterpretable,
+      title={Mixture-of-Experts Graph Transformers for Interpretable Particle Collision Detection}, 
+      author={Donatella Genovese and Alessandro Sgroi and Alessio Devoto and Samuel Valentine and Lennox Wood and Cristiano Sebastiani and Stefano Giagu and Monica D'Onofrio and Simone Scardapane},
+      year={2025},
+      url={https://arxiv.org/abs/2501.03432}, 
+}
+```
+
 
 #### Changelog
 - *version 0.0.5*. New dataset. 
