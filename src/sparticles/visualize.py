@@ -220,122 +220,113 @@ def display_attention_matrix(graph, attention_scores, save_to: Union[os.PathLike
     return fig
 
 # WARNING this is not used so not tested
-def plot_event_3d(g, xyz: Tuple = (1, 2, 0), aspectmode:str = 'cube', save_to: Union[os.PathLike, str, bytes] = None,  **kwargs):
-    """
-    Plots a 3D visualization of a particle event.
 
-    Parameters:
-    -----------
-    g : `torch_geometric.data.Data`
-        The particle event to visualize.
-    xyz : Tuple[int, int, int], optional
-        The indices of the columns in `g.x` to use as x, y, and z coordinates, respectively.
-        Default is (0, 1, 2).
-    aspectmode : str, optional
-        The aspect mode of the 3D plot. Default is 'cube'.
-    save_to : Union[os.PathLike, str, bytes], optional 
-        The path to save the image to. If None, the image is displayed instead of saved.
-        Default is None.
-    **kwargs : dict, optional
-        Additional keyword arguments to pass to the `go.Layout` constructor.
-
-    Returns:
-    --------
-    None
-    """
-
-    x_col, y_col, z_col = xyz[0], xyz[1], xyz[2]
-
-    # Select node and edge coordinates
-    Xn = g.x[:, x_col].tolist() # x-coordinates of nodes
-    Yn = g.x[:, y_col].tolist() # y-coordinates of nodes
-    Zn = g.x[:, z_col].tolist() # z-coordinates of nodes
-
-    Xe = g.x[:, x_col][g.edge_index.t().unique()].tolist()  # x-coordinates of edge ends
-    Ye = g.x[:, y_col][g.edge_index.t().unique()].tolist()  # y-coordinates of edge ends
-    Ze = g.x[:, z_col][g.edge_index.t().unique()].tolist()  # z-coordinates of edge ends
-
-    # TODO we could use other attributes for size or color
-    # colors = g.x[:, 3].tolist() # color of nodes
-    # size = g.x[:, 3].tolist() # size of nodes
-
-    trace1=go.Scatter3d(x=Xe,
-                        y=Ye,
-                        z=Ze,
-                        mode='lines',
-                        line=dict(color='rgb(125,125,125)', width=1),
-                        hoverinfo='none'
-                        )
-    
-    trace2=go.Scatter3d(x=Xn,
-                        y=Yn,
-                        z=Zn,
-                        mode='markers',
-                        # name='actors',
-                        marker=dict(symbol='circle', # [‘circle’, ‘circle-open’, ‘cross’, ‘diamond’, ‘diamond-open’, ‘square’, ‘square-open’, ‘x’]
-                                    # size=8,
-                                    # color=colors,
-                                    colorscale='Viridis',
-                                    line=dict(color='rgb(50,50,50)', width=0.5)
-                                    ),
-                        # text=labels,
-                        showlegend=True,
-                        hoverinfo='text',
-                        hovertext=list(zip(Xn, Yn, Zn)) # TODO add other node features
-                        )
-
-
-    # https://plotly.com/python/reference/layout/scene/
-    background_distance = 5 # a margin that keeps the background far from points. TODO this should be a parameter
-    xaxis=dict(
-        showbackground=True,
-        range= [min(Xn)-background_distance, max(Xn)+background_distance],
-        autorange=False,
-        showline=True,
-        zeroline=True,
-        showgrid=True,
-        showticklabels=True,
-        title='x',)
-    yaxis=dict(
-        showbackground=True,
-        range=[min(Yn)-background_distance, max(Yn)+background_distance],
-        autorange=False,
-        showline=True,
-        zeroline=True,
-        showgrid=True,
-        showticklabels=True,
-        title='y',)
-    zaxis=dict(
-        showbackground=True,
-        # range= [min(Zn)-background_distance, max(Zn)+background_distance],
-        showline=True,
-        zeroline=True,
-        showgrid=True,
-        showticklabels=True,
-        title='z',)
-        
-
-    layout = go.Layout(
-         title=f"Event {g.event_id}",
-         showlegend=False,
-         scene=dict(
-             xaxis=xaxis,
-             yaxis=yaxis,
-             zaxis=zaxis,
-            aspectmode=aspectmode
-            ),
-        **kwargs,) # https://plotly.com/python-api-reference/generated/plotly.graph_objects.layout.html#plotly.graph_objects.layout.Margin
-    
-    data=[trace1, trace2]
-    fig=go.Figure(data=data, layout=layout)
-    fig.update_layout(margin = dict(t=0, l=0, r=0, b=0))
-    
-    # save or display image
-    if save_to is not None:
-        is_html = save_to.endswith('.html')
-        if is_html:
-            fig.write_html(save_to)
-        else:
-            fig.write_image(save_to)
-    else: 
-        fig.show()  
+# def plot_event_3d(g, xyz: Tuple = (1, 2, 0), aspectmode:str = 'cube', save_to: Union[os.PathLike, str, bytes] = None,  **kwargs):
+#   """
+#   Plots a 3D visualization of a particle event.
+#   Parameters:
+#   -----------
+#   g : `torch_geometric.data.Data`
+#       The particle event to visualize.
+#   xyz : Tuple[int, int, int], optional
+#       The indices of the columns in `g.x` to use as x, y, and z coordinates, respectively.
+#       Default is (0, 1, 2).
+#   aspectmode : str, optional
+#       The aspect mode of the 3D plot. Default is 'cube'.
+#   save_to : Union[os.PathLike, str, bytes], optional 
+#       The path to save the image to. If None, the image is displayed instead of saved.
+#       Default is None.
+#   **kwargs : dict, optional
+#       Additional keyword arguments to pass to the `go.Layout` constructor.
+#   Returns:
+#   --------
+#   None
+#   """
+#   x_col, y_col, z_col = xyz[0], xyz[1], xyz[2]
+#   # Select node and edge coordinates
+#   Xn = g.x[:, x_col].tolist() # x-coordinates of nodes
+#   Yn = g.x[:, y_col].tolist() # y-coordinates of nodes
+#   Zn = g.x[:, z_col].tolist() # z-coordinates of nodes
+#   Xe = g.x[:, x_col][g.edge_index.t().unique()].tolist()  # x-coordinates of edge ends
+#   Ye = g.x[:, y_col][g.edge_index.t().unique()].tolist()  # y-coordinates of edge ends
+#   Ze = g.x[:, z_col][g.edge_index.t().unique()].tolist()  # z-coordinates of edge ends
+#   # TODO we could use other attributes for size or color
+#   # colors = g.x[:, 3].tolist() # color of nodes
+#   # size = g.x[:, 3].tolist() # size of nodes
+#   trace1=go.Scatter3d(x=Xe,
+#                       y=Ye,
+#                       z=Ze,
+#                       mode='lines',
+#                       line=dict(color='rgb(125,125,125)', width=1),
+#                       hoverinfo='none'
+#                       )
+#   
+#   trace2=go.Scatter3d(x=Xn,
+#                       y=Yn,
+#                       z=Zn,
+#                       mode='markers',
+#                       # name='actors',
+#                       marker=dict(symbol='circle', # [‘circle’, ‘circle-open’, ‘cross’, ‘diamond’, ‘diamond-open’, ‘square’, ‘square-open’, ‘x’]
+#                                   # size=8,
+#                                   # color=colors,
+#                                   colorscale='Viridis',
+#                                   line=dict(color='rgb(50,50,50)', width=0.5)
+#                                   ),
+#                       # text=labels,
+#                       showlegend=True,
+#                       hoverinfo='text',
+#                       hovertext=list(zip(Xn, Yn, Zn)) # TODO add other node features
+#                       )
+#    # https://plotly.com/python/reference/layout/scene/
+#   background_distance = 5 # a margin that keeps the background far from points. TODO this should be a parameter
+#   xaxis=dict(
+#       showbackground=True,
+#       range= [min(Xn)-background_distance, max(Xn)+background_distance],
+#       autorange=False,
+#       showline=True,
+#       zeroline=True,
+#       showgrid=True,
+#       showticklabels=True,
+#       title='x',)
+#   yaxis=dict(
+#       showbackground=True,
+#       range=[min(Yn)-background_distance, max(Yn)+background_distance],
+#       autorange=False,
+#       showline=True,
+#       zeroline=True,
+#       showgrid=True,
+#       showticklabels=True,
+#       title='y',)
+#   zaxis=dict(
+#       showbackground=True,
+#       # range= [min(Zn)-background_distance, max(Zn)+background_distance],
+#       showline=True,
+#       zeroline=True,
+#       showgrid=True,
+#       showticklabels=True,
+#       title='z',)
+#       
+#   layout = go.Layout(
+#        title=f"Event {g.event_id}",
+#        showlegend=False,
+#        scene=dict(
+#            xaxis=xaxis,
+#            yaxis=yaxis,
+#            zaxis=zaxis,
+#           aspectmode=aspectmode
+#           ),
+#       **kwargs,) # https://plotly.com/python-api-reference/generated/plotly.graph_objects.layout.html#plotly.graph_objects.layout.Margin
+#   
+#   data=[trace1, trace2]
+#   fig=go.Figure(data=data, layout=layout)
+#   fig.update_layout(margin = dict(t=0, l=0, r=0, b=0))
+#   
+#   # save or display image
+#   if save_to is not None:
+#       is_html = save_to.endswith('.html')
+#       if is_html:
+#           fig.write_html(save_to)
+#       else:
+#           fig.write_image(save_to)
+#   else: 
+#       fig.show() 

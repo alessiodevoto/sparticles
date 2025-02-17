@@ -94,7 +94,7 @@ class EventsDataset(InMemoryDataset):
     def __init__(
             self,
             root,
-            url,
+            url="https://cernbox.cern.ch/s/0nh0g7VubM4ndoh/download",
             event_subsets: dict = DEFAULT_EVENT_SUBSETS,
             add_edge_index: bool = True,
             delete_raw_archive: bool = False,
@@ -179,6 +179,7 @@ class EventsDataset(InMemoryDataset):
         └── raw
             ├── signal
             │   └── Wh_hbb_fullMix.h5
+            |   └── other stuff we don't care about ...
             ├── singletop
             │   └── singletop.h5
             └── ttbar

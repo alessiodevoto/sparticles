@@ -10,8 +10,7 @@ from dataset import EventsDataset
 graphs = EventsDataset(
             root='/Users/alessiodevoto/Desktop/test_dataset3',
             delete_raw_archive=False,
-            event_subsets={'signal': 100, 'singletop': 100, 'ttbar': 100},
-            url='<secret_url>')
+            event_subsets={'signal': 100, 'singletop': 100, 'ttbar': 100})
 
 graphs
 ```

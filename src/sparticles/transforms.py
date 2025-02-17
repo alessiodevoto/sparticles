@@ -80,7 +80,7 @@ class RevertMakeHomogeneous(BaseTransform):
         """
         # even columns mask
         mask = torch.tensor([i for i in range(0, data.x.shape[1], 2)])
-        mask = torch.tensor([0,2,4,6,8,10])
+        # mask = torch.tensor([0,2,4,6,8,10])
 
         # Use boolean indexing to select only even columns
         data.x = data.x[:, mask]
