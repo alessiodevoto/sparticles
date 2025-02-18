@@ -67,7 +67,7 @@ EVENT_TABLE = """
      | ETMiss            |  'ETMiss' | 'nan'     |  'ETMissPhi'|
      | jet               | 'pTj1'    |   etaj1   |   'phij1'   |
      """
-class EventsDataset(InMemoryDataset):
+class diHiggsDataset(InMemoryDataset):
      """
      Dataset of graphs representing collisions of particles.
      There are three types of event:
