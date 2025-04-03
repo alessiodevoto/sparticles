@@ -111,7 +111,7 @@ class EventsDataset(InMemoryDataset):
         self.subset_string = '_'.join([f'{k}_{v}' for k, v in sorted(self.event_subsets.items())])
 
         super().__init__(root, transform, pre_transform, pre_filter)
-        self.data, self.slices = torch.load(self.processed_paths[0])
+        self.data, self.slices = torch.load(self.processed_paths[0], weights_only=False)
 
     @property
     def raw_file_names(self):
