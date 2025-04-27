@@ -144,9 +144,9 @@ class EventsDataset(InMemoryDataset):
 
 
         print('Extracting files...')
-        tar = tarfile.open(raw_archive)
-        tar.extractall(self.raw_dir)
-        tar.close()
+        with tarfile.open(raw_archive) as tar:
+            tar.extractall(self.raw_dir)
+            
         if self.delete_raw_archive:
             os.remove(raw_archive)
 
@@ -187,7 +187,7 @@ class EventsDataset(InMemoryDataset):
         # Create a dictionary of h5 files, where keys are the event types and values are the path to the h5 file.
         # We don't know the .h5 file names, so we use glob to find them.
         
-        h5_files = {}
+        h5_files = []
 
         for d in self.raw_file_names:
             dir_path = os.path.join(self.raw_dir, d)
@@ -200,28 +200,23 @@ class EventsDataset(InMemoryDataset):
                 if len(signal_file_names) == 0:
                     raise ValueError(f'No signal files found in {dir_path} that pass the signal filter.')
 
-                # merge the files into a single file and add it to the h5_files dictionary
-                merged_file_path = os.path.join(dir_path, 'filtered_signal.h5')
-                with pd.HDFStore(merged_file_path, mode='w') as store:
-                    for file in signal_file_names:
-                        df = pd.read_hdf(file)
-                        store.append('data', df, format='table', data_columns=True)
-                h5_files[d] = merged_file_path
+                for f in signal_file_names:
+                    h5_files.append((d, f))  
+                
+                self.event_subsets['signal'] = self.event_subsets['signal'] // len(signal_file_names)
 
-                #signal_file_path = os.path.join(dir_path, 'Wh_hbb_fullMix.h5')
-                #if os.path.exists(signal_file_path):
-                #    h5_files[d] = signal_file_path
             else:
-                h5_files[d] = glob.glob(f'{dir_path}/*.h5', recursive=True)[0]
+                h5_files.append((d, glob.glob(f'{dir_path}/*.h5', recursive=True)[0]))
 
         data_list = []
 
-        for event_type, h5_file in h5_files.items():
+        for event_type, h5_file in h5_files:
             # Labels is the same for all events in the same directory.
             label = EVENT_LABELS[event_type]
             # Read data into pandas dataframe and filter out useless columns.
             graphs = pd.read_hdf(h5_file)
             graphs.drop(columns=list(set(graphs.columns) - set(USEFUL_COLS)), inplace=True)
+            graphs = graphs.apply(pd.to_numeric, errors='coerce')
             # Hackish way to have all rows with the same number of columns.
             graphs['nan'] = torch.nan
             # Rearrange columns to have the same order as USEFUL_COLS and create index column.
