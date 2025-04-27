@@ -89,7 +89,7 @@ class EventsDataset(InMemoryDataset):
         transform (callable, optional): A function/transform that takes in a `torch_geometric.data.Data` object and returns a transformed version. The data object will be transformed before every access. Defaults to None.
         pre_transform (callable, optional): A function/transform that takes in a `torch_geometric.data.Data` object and returns a transformed version. The data object will be transformed before being saved to disk. Defaults to None.
         pre_filter (callable, optional): A function that takes in a `torch_geometric.data.Data` object and returns a boolean value, indicating whether the data object should be included in the final dataset. Defaults to None.
-        download_type: If it is set to 1, it extracts all the h5 files in signal folder, if it is set to 2, it extracts the h5 file with all mixed signals. 
+        signal_filter (callable, optional): A function that takes a filename and returns a boolean value, indicating whether the file should be included in the dataset. Defaults to None. 
     """
     def __init__(
             self,
@@ -101,13 +101,17 @@ class EventsDataset(InMemoryDataset):
             transform=None,
             pre_transform=None,
             pre_filter=None,
-            download_type: int = 2):  
+            signal_filter=lambda filename: "Wh_hbb_fullMix.h5" in filename,
+            # download_type: int = 2,  # TODO: @Donatella what was this for?
+            ):  
 
+
+        self.signal_filter = signal_filter 
         self.url = url
         self.delete_raw_archive = delete_raw_archive
         self.event_subsets = event_subsets
         self.add_edge_index = add_edge_index
-        self.download_type = download_type  # Store download type
+        # self.download_type = download_type  # Store download type
         self.subset_string = '_'.join([f'{k}_{v}' for k, v in sorted(self.event_subsets.items())])
 
         super().__init__(root, transform, pre_transform, pre_filter)
@@ -138,21 +142,14 @@ class EventsDataset(InMemoryDataset):
         print('This may take a while...')
         raw_archive = download_url(self.url, self.raw_dir, filename='events.tar', log=False)
 
-        print('Extracting files...')
-        with tarfile.open(raw_archive) as tar:
-            if self.download_type == 1:
-                #extract all files in the folder 
-                tar.extractall(self.raw_dir)
-            elif self.download_type == 2:
-                members = tar.getmembers()
-                for member in members:
-                    #extract the file which contains all signals mixed. 
-                    if 'signal' in member.name and 'Wh_hbb_fullMix.h5' not in member.name:
-                        continue
-                    tar.extract(member, self.raw_dir)
 
+        print('Extracting files...')
+        tar = tarfile.open(raw_archive)
+        tar.extractall(self.raw_dir)
+        tar.close()
         if self.delete_raw_archive:
             os.remove(raw_archive)
+
             
         # In case the compressed file contains a single directory, we move the files to the raw_dir.
         print('Moving files...')
@@ -178,8 +175,8 @@ class EventsDataset(InMemoryDataset):
         ├── processed
         └── raw
             ├── signal
-            │   └── Wh_hbb_fullMix.h5
-            |   └── other stuff we don't care about ...
+            │   └── Wh_hbb_fullMix.h5 # signals mixed 
+            |   └── <some_naming_convention ? > # signals grouped by event type
             ├── singletop
             │   └── singletop.h5
             └── ttbar
@@ -195,9 +192,25 @@ class EventsDataset(InMemoryDataset):
         for d in self.raw_file_names:
             dir_path = os.path.join(self.raw_dir, d)
             if d == 'signal':
-                signal_file_path = os.path.join(dir_path, 'Wh_hbb_fullMix.h5')
-                if os.path.exists(signal_file_path):
-                    h5_files[d] = signal_file_path
+                signal_file_names = glob.glob(f'{dir_path}/*.h5', recursive=True)
+                # This will be a list of files including the fullMix file and the files with the events grouped by event type.
+                # We need to filter the files to keep only the ones that pass the signal filter.
+                signal_file_names = [f for f in signal_file_names if self.signal_filter(f)]
+
+                if len(signal_file_names) == 0:
+                    raise ValueError(f'No signal files found in {dir_path} that pass the signal filter.')
+
+                # merge the files into a single file and add it to the h5_files dictionary
+                merged_file_path = os.path.join(dir_path, 'filtered_signal.h5')
+                with pd.HDFStore(merged_file_path, mode='w') as store:
+                    for file in signal_file_names:
+                        df = pd.read_hdf(file)
+                        store.append('data', df, format='table', data_columns=True)
+                h5_files[d] = merged_file_path
+
+                #signal_file_path = os.path.join(dir_path, 'Wh_hbb_fullMix.h5')
+                #if os.path.exists(signal_file_path):
+                #    h5_files[d] = signal_file_path
             else:
                 h5_files[d] = glob.glob(f'{dir_path}/*.h5', recursive=True)[0]
 
