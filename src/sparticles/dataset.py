@@ -10,6 +10,7 @@ import shutil
 import tarfile
 import glob
 from sparticles.transforms import MakeHomogeneous
+from .utils import convert
 
 # Random state for shuffling the dataset.
 RANDOM_STATE = 42
@@ -189,7 +190,7 @@ class EventsDataset(InMemoryDataset):
             # Read data into pandas dataframe and filter out useless columns.
             graphs = pd.read_hdf(h5_file)
 
-            #process the data based on the type of h5 files (dictionary or numeric)
+            #process the data based on the type of h5 files (some h5 are dictionary other numeric)
             if event_type == 'signal':
                 if "Wh_hbb_fullMix" in os.path.basename(h5_file):
                     graphs = graphs.apply(pd.to_numeric, errors='coerce')
